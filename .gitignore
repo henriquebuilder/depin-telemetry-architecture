@@ -1,0 +1,29 @@
+# .gitignore na raiz do projeto
+
+# Node / Angular
+**/node_modules/
+**/.angular/
+**/dist/
+
+# .NET 9
+**/bin/
+**/obj/
+**/.vs/
+**/appsettings.Development.json # Opcional: para não vazar credenciais locais
+
+# Go
+**/telemetry-injector-go/telemetry-injector # Executável compilado do Go
+**/*.exe
+**/*.exe~
+**/*.dll
+**/*.so
+**/*.dylib
+
+# IDEs e Sistema
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+.DS_Store
