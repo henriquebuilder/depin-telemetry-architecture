@@ -1,0 +1,169 @@
+<div class="min-h-screen bg-background p-8">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <header class="mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-textPrimary mb-2">DePIN Node Monitor</h1>
+          <p class="text-textSecondary">Real-time telemetry and health monitoring</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-textTertiary">Connection:</span>
+            @if (isConnecting()) {
+              <span class="badge badge-neutral animate-pulse">Connecting...</span>
+            } @else if (isConnected()) {
+              <span class="badge badge-success">Connected</span>
+            } @else if (isReconnecting()) {
+              <span class="badge badge-warning animate-pulse">Reconnecting...</span>
+            } @else {
+              <span class="badge badge-danger">Disconnected</span>
+            }
+          </div>
+          <button 
+            (click)="refresh()"
+            class="px-4 py-2 bg-surfaceLight text-textPrimary rounded-lg border border-border hover:bg-border transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Metrics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Nodes -->
+      <div class="metric-card">
+        <div class="metric-label">Total Nodes</div>
+        <div class="metric-value">{{ totalNodes() }}</div>
+        <div class="text-sm text-textTertiary mt-2">Registered devices</div>
+      </div>
+
+      <!-- Unhealthy Nodes -->
+      <div class="metric-card">
+        <div class="metric-label">Unhealthy</div>
+        <div class="metric-value text-glow-danger text-danger">{{ totalUnhealthy() }}</div>
+        <div class="text-sm text-textTertiary mt-2">{{ unhealthyPercentage() }}% of total</div>
+      </div>
+
+      <!-- Healthy Nodes -->
+      <div class="metric-card">
+        <div class="metric-label">Healthy</div>
+        <div class="metric-value text-glow-success text-success">{{ totalHealthy() }}</div>
+        <div class="text-sm text-textTertiary mt-2">Operating normally</div>
+      </div>
+
+      <!-- Degraded Nodes -->
+      <div class="metric-card">
+        <div class="metric-label">Degraded</div>
+        <div class="metric-value text-warning">{{ totalDegraded() }}</div>
+        <div class="text-sm text-textTertiary mt-2">Performance issues</div>
+      </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    @if (recentAlerts().length > 0) {
+      <div class="card p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-textPrimary">Recent Alerts</h2>
+          <button 
+            (click)="clearAlerts()"
+            class="text-sm text-textTertiary hover:text-textSecondary transition-colors"
+          >
+            Clear All
+          </button>
+        </div>
+        <div class="space-y-3">
+          @for (alert of recentAlerts(); track alert.deviceId) {
+            <div class="flex items-center gap-4 p-3 bg-danger/5 border border-danger/20 rounded-lg">
+              <div class="text-danger text-xl">⚠</div>
+              <div class="flex-1">
+                <div class="font-medium text-textPrimary">{{ alert.deviceId }}</div>
+                <div class="text-sm text-textSecondary">
+                  {{ alert.deviceType }} · {{ alert.location }}
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm text-textSecondary">
+                  CPU: {{ alert.cpuUsage.toFixed(1) }}% · MEM: {{ alert.memoryUsage.toFixed(1) }}%
+                </div>
+                <div class="text-xs text-textTertiary">{{ formatTimestamp(alert.timestamp) }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Nodes Table -->
+    <div class="table-container">
+      <div class="table-header">
+        <h2 class="text-lg font-semibold text-textPrimary">Node Status</h2>
+      </div>
+      
+      @if (nodes().length === 0) {
+        <div class="p-12 text-center">
+          <div class="text-textTertiary text-lg mb-2">No nodes detected</div>
+          <div class="text-textTertiary text-sm">Waiting for telemetry data...</div>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="text-left text-textTertiary text-sm uppercase tracking-wider">
+                <th class="px-6 py-3 font-medium">Device ID</th>
+                <th class="px-6 py-3 font-medium">Type</th>
+                <th class="px-6 py-3 font-medium">Location</th>
+                <th class="px-6 py-3 font-medium">Status</th>
+                <th class="px-6 py-3 font-medium">CPU</th>
+                <th class="px-6 py-3 font-medium">Memory</th>
+                <th class="px-6 py-3 font-medium">Disk</th>
+                <th class="px-6 py-3 font-medium">Last Seen</th>
+                <th class="px-6 py-3 font-medium">Checks</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (node of nodes(); track node.id) {
+                <tr class="table-row">
+                  <td class="px-6 py-4">
+                    <div class="font-medium text-textPrimary">{{ node.deviceId }}</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-textSecondary">{{ node.deviceType }}</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-textSecondary">{{ node.location }}</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span 
+                      class="badge {{ getHealthStatusBadgeClass(node.healthStatus) }}"
+                      [class.animate-pulse]="node.healthStatus === 'Unhealthy'"
+                    >
+                      <span class="mr-1">{{ getHealthStatusIcon(node.healthStatus) }}</span>
+                      {{ node.healthStatus }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-textSecondary">--</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-textSecondary">--</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-textSecondary">--</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-textSecondary text-sm">{{ formatTimestamp(node.lastTelemetryReceived) }}</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-textSecondary text-sm">{{ node.consecutiveUnhealthyChecks }}</div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
